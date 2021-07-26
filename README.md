@@ -16,5 +16,5 @@ Where [file] is replaced with the name of the csv file located in the data folde
 An example of the command with values filled in:
 
 ```bibtex
-python em.py example0.csv 2 15
+python em.py example1.csv 2 15
 ```
