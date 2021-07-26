@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import argparse
 from scipy.stats import norm, gaussian_kde
@@ -15,12 +16,12 @@ class Centroid(object):
         variance (numpy array): variance for the centroids distribution, len(variance) is dimensionality of the data
         id (int): N-th cluster, helpful value to update the mean and variance of the centroid
     """
-    def __init__(self, values, variance, id):
+    def __init__(self, values, variance, id) -> None:
         self.values = values 
         self.variance = variance
         self.id = id
 
-    def update_values_variance(self, data, prob_array):
+    def update_values_variance(self, data, prob_array) -> None:
         """
         Attributes:
             data (numpy array): n by d array. Where n is the number of observations and d dimensions
@@ -46,7 +47,7 @@ class Centroid(object):
 #####################################
 
 #-----------------------------------
-def obtain_one_cluster(y):
+def obtain_one_cluster(y) -> int:
     """ Approxiamte the possible number of clusters per one dimension
     Args:
         y (numpy array): n by 1 array
@@ -65,7 +66,7 @@ def obtain_one_cluster(y):
     return max_
 
 #-----------------------------------
-def obtain_k_cluster(y):
+def obtain_k_cluster(y) -> int:
     """ Approxiamte the number of clusters in n dimensions
     Args:
         y (numpy array): n by d array. n observations in d dimensions
@@ -80,7 +81,7 @@ def obtain_k_cluster(y):
         return max_
 
 #-----------------------------------
-def get_random_start(observations, n_clusters):
+def get_random_start(data, n_clusters) -> List[Centroid]:
     """ Randomly create n_clusters from the dataset.
     Args:
         observations (numpy array): the provided data points 
@@ -99,16 +100,15 @@ def get_random_start(observations, n_clusters):
         std = np.array([data.T[i].std()*np.random.uniform(.70,.95) for i in range(dimension)])
 
         for i in range(n_clusters):
-            # FIXME: think of other alternative
             centroids.append(Centroid(c_observations[i], std**2, i))
-        return centroids
 
     else:
         centroids.append(Centroid(np.mean(data,axis=0), np.std(data,axis=0)**2, 0))
-        return centroids
+    
+    return centroids
 
 #-----------------------------------
-def get_normal_distributions(centroid): 
+def get_normal_distributions(centroid) -> List[norm]: 
     """ Return a list of normal distributions based on one Centroid object
         Each normal corresponds to one dimension of the data
         Dimensions of each Centroid are independent
@@ -126,7 +126,7 @@ def get_normal_distributions(centroid):
     return normals
 
 #-----------------------------------
-def get_probability_cluster(observation, normals):
+def get_probability_cluster(observation, normals) -> float:
     """ The probability to belong to a cluster, that equals the product of the probabilities to belong to each dimension 
     Args:
         observation (numpy array): a observation of the data, an array of shape (d,) 
@@ -144,7 +144,7 @@ def get_probability_cluster(observation, normals):
     return prod_log_probability 
 
 #-----------------------------------
-def get_normalized_probability_cluster(prob_array):
+def get_normalized_probability_cluster(prob_array) -> np.numarray:
     """ Normalize the probabilities to belong to one cluster 
     Args:
         prod_log_probability (numpy array): non normalized probability array
@@ -164,7 +164,7 @@ def get_normalized_probability_cluster(prob_array):
         return prob_array # Do not consider the sign, since it depends on the number of dimensions
 
 #-----------------------------------
-def classification(prob_array):
+def classification(prob_array) -> np.numarray:
     """ Classify the observations 
     Args:
         prob_array (numpy array): n by k array, where element (i,j) represents the probability of observation i to belong to j cluster 
@@ -193,7 +193,7 @@ def classification(prob_array):
     return cluster   
 
 #-----------------------------------
-def write_results(data, classified, name):
+def write_results(data, classified, name) -> None:
     """ Write results
     Args:
         data (numpy array): n by d array
@@ -209,10 +209,10 @@ def write_results(data, classified, name):
     title += 'Cluster'
 
     #Save csv file
-    np.savetxt("./data/" + str(name) +"_labeled.csv", out, delimiter=',', header=title, comments="")
+    np.savetxt("./data/" + str(name) +"_classified.csv", out, delimiter=',', header=title, comments="")
 
 #-----------------------------------
-def get_log_BIC(prob_array, n_clusters, data_shape_1):
+def get_log_BIC(prob_array, n_clusters, data_shape_1) -> List:
     """ Calculate log likelihood and BIC 
     Args:
         classified (numpy array): array of lenght n, where the nth element corresponds to the k cluster that includes the nth point
@@ -229,10 +229,10 @@ def get_log_BIC(prob_array, n_clusters, data_shape_1):
     # Calculate BIC
     BIC = np.log(len(prob_array))*(2*n_clusters*data_shape_1) - 2*ll
 
-    return ll, BIC
+    return [ll, BIC]
 
 #-----------------------------------
-def parse_command_line():
+def parse_command_line() -> argparse.Namespace:
     """ Parse the command line arguments.
     Returns:
         (Namespace Object): object with attributes 'file' and 'n_clusters'
@@ -245,11 +245,11 @@ def parse_command_line():
     return parser.parse_args()
 
 ######################################
-## Estimation Maximization Function ##
+## Expectation Maximization Function ##
 ######################################
 
-def estimation_maximization(observations, centroids):
-    """ Perform estimation maximixation.
+def expectation_maximization(observations, centroids) -> List[Centroid]:
+    """ Perform expectation maximixation.
     Args:
         observations (np array): an array of the data
         centroids (list): a list of Centroid object
@@ -303,8 +303,8 @@ if __name__ == "__main__":
         # First series of loop: 5 steps or less than 5 seconds
         count = 0
         while time.time() - start_time < 5 and count < 6:
-            centroids_0, prob_array_0 = estimation_maximization(data, centroids_0)
-            centroids_1, prob_array_1 = estimation_maximization(data, centroids_1)
+            centroids_0, prob_array_0 = expectation_maximization(data, centroids_0)
+            centroids_1, prob_array_1 = expectation_maximization(data, centroids_1)
             count += 1
 
         # Calculate Log Likelihood
@@ -320,7 +320,7 @@ if __name__ == "__main__":
 
         # Loop while there is still time left
         while time.time() - start_time < time_limit:
-            centroids, prob_array = estimation_maximization(data, centroids)
+            centroids, prob_array = expectation_maximization(data, centroids)
     
     #----- Run the algorithm with the selected number of clusters
     else:
@@ -331,12 +331,12 @@ if __name__ == "__main__":
 
         # If the number of clusters is 1
         if n_clusters == 1:
-            centroids, prob_array = estimation_maximization(data, centroids)
+            centroids, prob_array = expectation_maximization(data, centroids)
         
         else:
             # Loop while there is still time left
             while time.time() - start_time < time_limit:
-                centroids, prob_array = estimation_maximization(data, centroids)
+                centroids, prob_array = expectation_maximization(data, centroids)
     #-----
     # Classify the observations
     classified = classification(prob_array)
